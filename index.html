@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="./css/sheep.css">
+</head>
+<body>
+    <div class="div">
+        <canvas id="canvas" width="460px" height="800px"></canvas>
+    </div>
+</body>
+</html>
+<script>
+    window.requestAnimFrame = (function() {
+        return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
+            function( callback,element) {
+                return window.setTimeout(callback, 1000 / 60);
+            };
+    })();
+    var ctx;
+    var can;
+    var goods;
+    var box;
+    var button;
+    var picResourceMap
+    var startTime = Date.now();
+    var deltaTime = 0;
+    class Goods{
+        constructor(){
+            this.goodsList = []
+            this.tempGoodsList = ""
+            this.refreshSwitch = false
+            this.angle = 0
+            this.dots = {
+                x:210,
+                y:200
+            }
+            this.radius = 100
+            this.num = 60
+            this.count = 0
+            this.json = '{"respCode":"1000","respMsg":"成功","goodArray":{"1":[{"name":"book","width":60,"height":66,"x":80,"y":126,"canClick":false},{"name":"cabbage","width":60,"height":66,"x":140,"y":126,"canClick":false},{"name":"carrot","width":60,"height":66,"x":200,"y":126,"canClick":false},{"name":"chicken","width":60,"height":66,"x":260,"y":126,"canClick":false},{"name":"gift","width":60,"height":66,"x":320,"y":126,"canClick":false},{"name":"bee","width":60,"height":66,"x":80,"y":192,"canClick":false},{"name":"gift","width":60,"height":66,"x":140,"y":192,"canClick":false},{"name":"carrot","width":60,"height":66,"x":200,"y":192,"canClick":false},{"name":"chicken","width":60,"height":66,"x":260,"y":192,"canClick":false},{"name":"gift","width":60,"height":66,"x":320,"y":192,"canClick":false},{"name":"bee","width":60,"height":66,"x":80,"y":258,"canClick":false},{"name":"gift","width":60,"height":66,"x":140,"y":258,"canClick":false},{"name":"carrot","width":60,"height":66,"x":200,"y":258,"canClick":false},{"name":"chicken","width":60,"height":66,"x":260,"y":258,"canClick":false},{"name":"gift","width":60,"height":66,"x":320,"y":258,"canClick":false},{"name":"grass","width":60,"height":66,"x":80,"y":324,"canClick":false},{"name":"tree","width":60,"height":66,"x":140,"y":324,"canClick":false},{"name":"grass","width":60,"height":66,"x":200,"y":324,"canClick":false},{"name":"tree","width":60,"height":66,"x":260,"y":324,"canClick":false},{"name":"grass","width":60,"height":66,"x":320,"y":324,"canClick":false},{"name":"gift","width":60,"height":66,"x":60,"y":394,"canClick":false},{"name":"book","width":60,"height":66,"x":330,"y":394,"canClick":false}],"2":[{"name":"milk","width":60,"height":66,"x":110,"y":159,"canClick":false},{"name":"cabbage","width":60,"height":66,"x":170,"y":159,"canClick":false},{"name":"carrot","width":60,"height":66,"x":230,"y":159,"canClick":false},{"name":"chicken","width":60,"height":66,"x":290,"y":159,"canClick":false},{"name":"bee","width":60,"height":66,"x":110,"y":225,"canClick":false},{"name":"gift","width":60,"height":66,"x":170,"y":225,"canClick":false},{"name":"carrot","width":60,"height":66,"x":230,"y":225,"canClick":false},{"name":"chicken","width":60,"height":66,"x":290,"y":225,"canClick":false},{"name":"bee","width":60,"height":66,"x":110,"y":291,"canClick":false},{"name":"gift","width":60,"height":66,"x":170,"y":291,"canClick":false},{"name":"carrot","width":60,"height":66,"x":230,"y":291,"canClick":false},{"name":"chicken","width":60,"height":66,"x":290,"y":291,"canClick":false},{"name":"tree","width":60,"height":66,"x":60,"y":399,"canClick":false},{"name":"bee","width":60,"height":66,"x":330,"y":399,"canClick":false}],"3":[{"name":"milk","width":60,"height":66,"x":140,"y":192,"canClick":false},{"name":"cabbage","width":60,"height":66,"x":200,"y":192,"canClick":false},{"name":"carrot","width":60,"height":66,"x":260,"y":192,"canClick":false},{"name":"bee","width":60,"height":66,"x":140,"y":258,"canClick":false},{"name":"gift","width":60,"height":66,"x":200,"y":258,"canClick":false},{"name":"carrot","width":60,"height":66,"x":260,"y":258,"canClick":false},{"name":"book","width":60,"height":66,"x":60,"y":404,"canClick":false},{"name":"carrot","width":60,"height":66,"x":330,"y":404,"canClick":false}],"4":[{"name":"milk","width":60,"height":66,"x":170,"y":225,"canClick":true},{"name":"cabbage","width":60,"height":66,"x":230,"y":225,"canClick":true},{"name":"cabbage","width":60,"height":66,"x":60,"y":409,"canClick":true},{"name":"cabbage","width":60,"height":66,"x":330,"y":409,"canClick":true}]}}';
+            this.init()
+        }
+        init(){
+            var result = JSON.parse(this.json);
+            if (result.respCode === "1000") {
+                var goodArray = result.goodArray;
+                for (var item in goodArray) {
+                    this.goodsList.push(goodArray[item]);
+                }
+            }
+        }
+        draw(){
+            ctx.drawImage(picResourceMap.get("bg") , 0, 0, 460, 800);
+            for (var i = 0; i < this.goodsList.length; i++) {
+                var indexGoods = this.goodsList[i];
+                for (var j = 0; j < indexGoods.length; j++) {
+                    var goods = indexGoods[j];
+                    if (this.refreshSwitch) {
+                        // 0.9 是用来减速的
+                        this.angle = this.angle + deltaTime * 0.9;
+                        goods.x = this.dots.x + this.radius * Math.sin(this.angle * 3.14 / 180);
+                        goods.y = this.dots.y + this.radius * Math.cos(this.angle * 3.14 / 180);
+                    }
+                    ctx.drawImage(picResourceMap.get("blank"), goods.x, goods.y, goods.width, goods.height);
+                    ctx.drawImage(picResourceMap.get(goods.name), goods.x + 8, goods.y + 8, goods.width * 0.7, goods.height * 0.7);
+                    if (!goods.canClick) {
+                        ctx.drawImage(picResourceMap.get("shadow"), goods.x, goods.y, goods.width, goods.height);
+                    }
+                }
+            }
+            if (this.refreshSwitch) {
+                if (this.count >= this.num) {
+                    console.log("nihao");
+                    this.count = 0;
+                    this.refreshSwitch = false;
+                    this.goodsList = JSON.parse(this.tempGoodsList);
+                }
+                this.count++;
+            }
+        }
+        // 判断是不是可以点击的内容，如果是可以点击则返回具体位置
+        getIndex(point){
+            var returnIndex = -1;
+            for (var i = 0; i < this.goodsList.length; i++) {
+                var indexGoods = this.goodsList[i];
+                for (var j = 0; j < indexGoods.length; j++) {
+                    var it = indexGoods[j];
+                    if (it.canClick && (it.x < point.x) && (point.x  < (Number(it.x) + Number(it.width))
+                        && (it.y < point.y) && (point.y < (Number(it.y) + Number(it.height))))) {
+                        return [i,j];
+                    }
+                }
+            }
+            return returnIndex;
+        }
+        // 移除数组并且返回移除的内容
+        getGoods(index){
+            var line = index[0]
+            var row = index[1]
+            var goods = this.goodsList[line][row]
+            this.goodsList[line].splice(row,1)
+            // 清除画布
+            var w = can.width;
+            var h = can.height;
+            ctx.clearRect(0, 0, w, h);
+            return goods
+        }
+        showCoverGoods(selectGoods,index){
+            var line = index[0];
+            if (line !== 0) {
+                var nextIndex = line - 1;
+                var coverGoods = [];
+                for (var i = 0; i < this.goodsList[nextIndex].length; i++) {
+                    if (
+                        goods.calLength(this.goodsList[nextIndex][i].x, 
+                        this.goodsList[nextIndex][i].y, 
+                        selectGoods.x, 
+                        selectGoods.y) < 4356
+                    ) {
+                        // 被选被压在下一层的图片
+                        coverGoods.push({"line": nextIndex, "row": i});
+                    }
+                }
+                for (var i = 0; i < coverGoods.length; i++) {
+                    var currentCoverGoods = true;
+                    for (var j = 0; j < this.goodsList[line].length; j++) {
+                        if (goods.calLength(this.goodsList[nextIndex][coverGoods[i].row].x, this.goodsList[nextIndex][coverGoods[i].row].y,
+                            this.goodsList[line][j].x, this.goodsList[line][j].y) < 4356) {
+                            currentCoverGoods = false;
+                            break;
+                        }
+                    }
+                    // 展示被压在下一层的图片
+                    if (currentCoverGoods) {
+                        this.goodsList[nextIndex][coverGoods[i].row].canClick = true;
+                    }
+                }
+            }
+        }
+        // Math.pow(x,y) 方法可返回 x 的 y 次幂的值。
+        calLength(x1, y1, x2, y2) {
+            return Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2);
+        }
+        goodsClear(){
+            for (var i = 0; i < this.goodsList.length; i++) {
+                if (this.goodsList[i].length !== 0) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        refreshGoods(){
+            var goodListStack = [];
+            for (var i = 0; i < this.goodsList.length; i++) {
+                for (var j = 0; j < this.goodsList[i].length; j++) {
+                    goodListStack.push(this.goodsList[i][j].name);
+                }
+            }
+            for (var i = 0; i < this.goodsList.length; i++) {
+                for (var j = 0; j < this.goodsList[i].length; j++) {
+                    this.goodsList[i][j].name = goodListStack.pop();
+                }
+            }
+            this.tempGoodsList = JSON.stringify(this.goodsList);
+            this.refreshSwitch = true;
+        }
+    }
+    class Box{
+        constructor(){
+            this.boxList = []
+        }
+        draw(){
+            ctx.moveTo(35,600);
+            ctx.lineTo(400,600);
+            ctx.lineTo(400,660);
+            ctx.lineTo(35,660);
+            ctx.lineTo(35,600);
+            ctx.stroke();
+            for (var i = 0; i < this.boxList.length; i++) {
+                var goods =  this.boxList[i];
+                var startLocation = 21;
+                if (i !== 0) {
+                    startLocation = startLocation + goods.width * i;
+                }
+                ctx.drawImage(picResourceMap.get("blank") , startLocation, 605, goods.width, goods.height);
+                ctx.drawImage(picResourceMap.get(goods.name) , startLocation + 8, 605 + 8,
+                    goods.width * 0.7, goods.height * 0.7);
+            }
+        }
+        addGoods(goods){
+            this.boxList.push(goods);
+            if (this.boxList.length >= 7) {
+                console.log("fail");
+                return false;
+            }
+            return true;
+        }
+        clearSame(){
+            var boxArray = {};
+            this.boxList.forEach((it, index) => {
+                boxArray[it.name] = (boxArray[it.name] ? boxArray[it.name] : 0) + 1;
+            });
+             // 消除目标
+            var target;
+            for (var item in boxArray) {
+                if (boxArray[item] == 3) {
+                    target = item;
+                    this.boxList = this.boxList.filter(it => {
+                        return it.name != item
+                    })
+                    if(this.boxList.length === 0 && goods.goodsClear()){
+                        let abc = setTimeout(()=>{
+                            alert("niyingle")
+                        },500)
+                    }
+                }
+            }
+
+            console.log("消除", target);
+        }
+        getThreeGoods(){
+            if(this.boxList.length < 3) {
+                return -1;
+            }
+            var reduceList = [];
+            var tempBoxList = [];
+            for (var i = 0; i < this.boxList.length; i++) {
+                if (i < 3) {
+                    // 获取前面三个
+                    reduceList.push(this.boxList[i]);
+                } else {
+                    tempBoxList.push(this.boxList[i]);
+                }
+            }
+            this.boxList = tempBoxList;
+            return reduceList;
+        }
+    }
+    class Button{
+        constructor() {
+            this.buttonList = [{
+                "name": "refresh",
+                "x": 180,
+                "y": 705,
+                "width": 85,
+                "height": 74
+            }];
+            // 存放额外三个的数组
+            this.reduceList = [];
+            // 减少槽内货物功能次数
+            this.reduce = 99;
+            // 回退一步功能次数
+            this.backStep = 99;
+            // 刷新功能次数
+            this.refresh = 99;
+        }
+        draw(){
+            for (var i = 0; i < this.buttonList.length; i++) {
+                var button = this.buttonList[i];
+                var startLocation = 35;
+                if (i == 0) {
+                    startLocation = startLocation + 145 * 1;
+                }
+                var currentBut = picResourceMap.get(button.name);
+                this.buttonList[i].x = startLocation;
+                this.buttonList[i].y = 705;
+                this.buttonList[i].width = 85;
+                this.buttonList[i].height = 74;
+                ctx.drawImage(picResourceMap.get("button"), startLocation, 705, 85, 74);
+                ctx.drawImage(currentBut, startLocation + 20, 705 + 8, 48, 52);
+                ctx.drawImage(picResourceMap.get("dot"), startLocation + 70, 700, 30, 30);
+                ctx.save();
+                ctx.font="13px Arial";
+                ctx.strokeStyle = "#fff";
+                var text;
+                if (i === 0) {
+                    text = this.refresh;
+                }
+                ctx.strokeText(text,startLocation + 76, 720);
+            }
+            ctx.restore();
+        }
+        // 获取按钮各自index
+        getIndex(point){
+            var returnIndex = -1;
+            this.buttonList.forEach((it, index) => {
+                if ((it.x < point.x) && (point.x  < (Number(it.x) + Number(it.width))
+                    && (it.y < point.y) && (point.y < (Number(it.y) + Number(it.height))))) {
+                    returnIndex = index;
+                    return;
+                }
+            });
+            return returnIndex
+        }
+        addReduce(goods){
+            var reduceStartLocation = 140
+            for(var i = 0;i < goods.length;i++){
+                goods[i].x = reduceStartLocation + 60 * i
+                goods[i].y = 530
+                this.reduceList.push(goods[i])
+            }
+        }
+        clickReduce(){
+            if(this.reduce <= 0) return
+            this.reduce --
+        }
+        clickBackStep(){
+            if(this.backStep <= 0) return
+            this.backStep --
+        }
+        clickRefresh(){
+            if(this.refresh <= 0) return
+            this.refresh --
+            // 刷新货物
+            goods.refreshGoods();
+        }
+    }
+    class Resource{
+        constructor(){
+            this.resourceMap = {};
+            // 资源常量
+            this.Resources = [
+                ['bg', 'img/bg.png'],
+                ['dot', 'img/19.png'],
+                ['blank', 'img/1.png'],
+                ['shadow', 'img/2.png'],
+                ['tree', 'img/3.png'],
+                ['grass', 'img/4.png'],
+                ['fire', 'img/5.png'],
+                ['brush', 'img/6.png'],
+                ['corn', 'img/7.png'],
+                ['shears', 'img/8.png'],
+                ['moon', 'img/9.png'],
+                ['chestnut', 'img/10.png'],
+                ['book', 'img/11.png'],
+                ['cabbage', 'img/12.png'],
+                ['carrot', 'img/13.png'],
+                ['chicken', 'img/14.png'],
+                ['gift', 'img/15.png'],
+                ['bee', 'img/16.png'],
+                ['milk', 'img/17.png'],
+                ['refresh', 'img/18.png'],
+                ['button', 'img/20.png'],
+            ];
+        }
+        loadPic() {
+            this.resourceMap = new Map(this.Resources);
+            for (let [key, value] of this.resourceMap) {
+                const image = new Image();
+                image.src = value;
+                this.resourceMap.set(key, image);
+            }
+            return this.resourceMap;
+        }
+    }
+    // 获取点位
+    function getEventPosition(ev){
+        var x, y;
+        if (ev.offsetX || ev.offsetX === 0) {
+            x = ev.offsetX;
+            y = ev.offsetY;
+        }
+        return {x: x, y: y};
+    }
+
+    function getGoodsOrButton(point) {
+        // 如果不是关卡选项
+        var index;
+        // 返回[1,2] 表示在json字符串中的第几个数组里的第几个数组
+            index = goods.getIndex(point);
+            console.log('货物位置',index);
+            if (index !== -1) {
+                // 是货物
+                var selectGoods = goods.getGoods(index);
+                if (box.addGoods(selectGoods)) {
+                    // 判断被当前goods盖着的货物是否要允许点击
+                    goods.showCoverGoods(selectGoods, index);
+                    box.clearSame();
+                }
+            } else {
+                index = button.getIndex(point);
+                if (index !== -1) {
+                    switch (index) {
+                        // 是按钮
+                        case 0:
+                            button.clickRefresh();
+                            break;
+                        default:
+                            break;
+                    }
+                } 
+            }
+    }
+    function init(){
+        can = document.getElementById("canvas")
+        ctx = can.getContext("2d")
+        picResourceMap = new Resource().loadPic()
+        goods = new Goods()
+        box = new Box()
+        button = new Button()
+        can.addEventListener('click', (e) => {
+            var point = getEventPosition(e);
+            getGoodsOrButton(point);
+        });
+    }
+    // 游戏循环
+    function gameLoop() {
+        window.requestAnimFrame(gameLoop);
+        var now = Date.now();
+        deltaTime = now - startTime;
+        startTime = now;
+        drawGoods();
+        drawBox();
+        drawButton();
+    }
+        // 游戏入口
+    function start() {
+        init();
+        //游戏循环
+        gameLoop();
+    }
+    
+    // 绘制背景
+    function drawGoods() {
+        goods.draw();
+    }
+    
+    // 绘制盒子
+    function drawBox() {
+        box.draw();
+    }
+    // 绘制功能按钮
+    function drawButton() {
+        button.draw();
+    }
+    window.onload = start;
+</script>
